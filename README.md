@@ -9,7 +9,7 @@
 
 ## About
 
-This repository contains a [GithubAction](https://github.com/features/actions)
+This repository contains a [Github Action](https://github.com/features/actions)
 that checks Django migrations against known issues when running with Postgres
 in a high-load environment or using rolling deploys. It assumes that migrations
 are run before new versions of your code starts rolling out.

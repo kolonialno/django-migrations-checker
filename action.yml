@@ -17,5 +17,5 @@ runs:
     - run: python3 -m migration_checker --github-token ${{ inputs.github-token }}
       shell: bash
       env:
-          PYTHONPATH=${{ github.action_path }}
-          DJANGO_SETTINGS_MODULE=${{ inputs.django-settings-module }}
+        PYTHONPATH: ${{ github.action_path }}
+        DJANGO_SETTINGS_MODULE: ${{ inputs.django-settings-module }}
