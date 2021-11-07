@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "django-migrations-checker"
+version = "0.1.0"
+description = ""
+authors = ["Oda.com <tech@oda.com>"]
+license = "MIT"
+packages = [
+    { include = "migration_checker" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+Django = {version = "^3.2.9", optional = true }
+
+[tool.poetry.extras]
+django = ["Django"]
+
+[tool.poetry.dev-dependencies]
+black = "^21.10b0"
+flake8 = "^4.0.1"
+mypy = "^0.910"
+isort = "^5.10.0"
+django-stubs = "^1.9.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"

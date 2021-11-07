@@ -1,0 +1,21 @@
+name: "Django migrations checker"
+author: Oda.com
+description: |
+  This migration checks Django migrations against knowns issues when running in
+  a high load environment.
+inputs:
+  github-token:
+    description: |
+      Access token for authenticating against Github's API.
+      Without this the action will not comment on the pull request.
+    required: false
+  django-settings-module:
+    description: Django settings module to sue. E.g. myproject.settings
+runs:
+  using: "composite"
+  steps:
+    - run: python3 -m migration_checker --github-token ${{ inputs.github-token }}
+      shell: bash
+      env:
+          PYTHONPATH=${{ github.action_path }}
+          DJANGO_SETTINGS_MODULE=${{ inputs.django-settings-module }}
