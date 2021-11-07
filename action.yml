@@ -10,11 +10,11 @@ inputs:
       Without this the action will not comment on the pull request.
     required: false
   django-settings-module:
-    description: Django settings module to sue. E.g. myproject.settings
+    description: Django settings module to use. E.g. myproject.settings
 runs:
   using: "composite"
   steps:
-    - run: python3 -m migration_checker --github-token ${{ inputs.github-token }}
+    - run: python3 -m migration_checker --apply --github-token ${{ inputs.github-token }}
       shell: bash
       env:
         PYTHONPATH: ${{ github.action_path }}
