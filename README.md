@@ -9,7 +9,7 @@
 
 ## About
 
-This repository contains a [GithubAction][https://github.com/features/actions]
+This repository contains a [GithubAction](https://github.com/features/actions)
 that checks Django migrations against known issues when running with Postgres
 in a high-load environment or using rolling deploys. It assumes that migrations
 are run before new versions of your code starts rolling out.
@@ -27,8 +27,8 @@ The action requires you to install Python 3.9+ and your project's dependencies.
 It has no additional requirements beyond the Python standard libary. When the
 action runs it will apply and check all migrations that are unapplied.
 
-<details>
-<summary>Example workflow</summary>
+
+### Example workflow
 
 This is an example workflow that checks any migrations that are added in a
 branch.
@@ -94,8 +94,6 @@ jobs:
           django-settings-module: my_project.settings
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
-
-</details>
 
 ## Checks
 
