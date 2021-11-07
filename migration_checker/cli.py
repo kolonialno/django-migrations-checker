@@ -12,6 +12,9 @@ def main() -> None:
         "--database", type=str, help="Database connection to use", default="default"
     )
     parser.add_argument(
+        "--github-token", type=str, help="Access token to use to post comment on Github"
+    )
+    parser.add_argument(
         "--apply",
         action="store_true",
         help="Apply migrations. Without this only static checks are run.",
