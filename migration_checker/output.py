@@ -9,6 +9,8 @@ import textwrap
 
 from django.db.migrations import Migration
 
+from .github import GithubClient
+
 
 class ConsoleOutput:
     def no_migrations_to_apply(self) -> None:
@@ -61,9 +63,28 @@ bold = functools.partial(_color, color_code="1")
 
 
 class GithubCommentOutput:
-    def __init__(self) -> None:
+    def __init__(self, *, client: GithubClient) -> None:
         self.output = io.StringIO()
         self.first_migration = True
+        self.client = client
+
+    def post_comment(self) -> None:
+
+        comment = next(
+            (
+                comment
+                for comment in self.client.get_comments()
+                if "ADDED BY django-migrations-checker" in comment.body
+            ),
+            None,
+        )
+
+        body = self.output.getvalue()
+
+        if comment:
+            self.client.update_comment(comment_id=comment.id, body=body)
+        else:
+            self.client.create_comment(body=body)
 
     def no_migrations_to_apply(self) -> None:
         pass
@@ -92,6 +113,8 @@ class GithubCommentOutput:
 
     def done(self) -> None:
         print(get_footer_md(), file=self.output)
+
+        self.post_comment()
 
 
 def get_header_md() -> str:

@@ -1,7 +1,11 @@
 import argparse
+import json
+import os
+from typing import Union
 
 from .executor import Executor
-from .output import ConsoleOutput
+from .github import GithubClient
+from .output import ConsoleOutput, GithubCommentOutput
 
 
 def main() -> None:
@@ -21,10 +25,31 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    event_name = os.environ.get("GITHUB_EVENT_NAME", None)
+    event_path = os.environ.get("GITHUB_EVENT_PATH", None)
+    repository = os.environ.get("GITHUB_REPOSITORY", None)
+
+    event_data = {}
+    if event_path:
+        with open(event_path, "r") as f:
+            event_data = json.loads(f.read())
+            assert isinstance(event_data, dict)
+
+    outputs: list[Union[ConsoleOutput, GithubCommentOutput]] = [ConsoleOutput()]
+
+    if args.github_token and repository and event_name == "pull_request" and event_data:
+        pull_request = int(event_data["number"])
+        github_client = GithubClient(
+            token=args.github_token,
+            repo=repository,
+            pull_request=pull_request,
+        )
+        outputs.append(GithubCommentOutput(client=github_client))
+
     Executor(
         database=args.database,
         apply_migrations=args.apply,
-        output=ConsoleOutput(),
+        outputs=outputs,
     ).run()
 
 

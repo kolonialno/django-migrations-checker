@@ -40,11 +40,11 @@ class Executor:
         *,
         database: str,
         apply_migrations: bool,
-        output: Union[ConsoleOutput, GithubCommentOutput]
+        outputs: list[Union[ConsoleOutput, GithubCommentOutput]]
     ) -> None:
         self.database = database
         self.apply_migrations = apply_migrations
-        self.output = output
+        self.outputs = outputs
         self.connection = connections[self.database]
         self.recorder = MigrationRecorder(self.connection)
 
@@ -67,21 +67,27 @@ class Executor:
         plan: list[tuple[Migration, bool]] = executor.migration_plan(targets)
 
         if not plan:
-            self.output.no_migrations_to_apply()
+            for output in self.outputs:
+                output.no_migrations_to_apply()
             return
 
         assert not any(backwards for _migration, backwards in plan)
 
-        self.output.begin(num_migrations=len(plan))
+        for output in self.outputs:
+            output.begin(num_migrations=len(plan))
 
         state = executor._create_project_state(  # type: ignore
             with_applied_migrations=True,
         )
 
-        for i, (migration, _) in enumerate(plan):
+        for migration, _ in plan:
 
             # Run checkers on the migration
-            warnings = self._check_migration(migration, state)
+            warnings = [
+                message
+                for check in all_checks
+                for message in check(migration=migration, state=state)
+            ]
 
             if self.apply_migrations:
                 queries, locks = self._apply_migration(migration, state)
@@ -100,22 +106,13 @@ class Executor:
                     "problematic if the tables are queried frequently.",
                 )
 
-            self.output.migration_result(
-                migration=migration, queries=queries, locks=locks, warnings=warnings
-            )
+            for output in self.outputs:
+                output.migration_result(
+                    migration=migration, queries=queries, locks=locks, warnings=warnings
+                )
 
-        self.output.done()
-
-    def _check_migration(self, migration: Migration, state: ProjectState) -> list[str]:
-        """
-        Perform static checks on a migration.
-        """
-
-        return [
-            message
-            for check in all_checks
-            for message in check(migration=migration, state=state)
-        ]
+        for output in self.outputs:
+            output.done()
 
     def _apply_migration(
         self, migration: Migration, state: ProjectState
