@@ -37,14 +37,14 @@ class GithubClient:
 
     def create_comment(self, *, body: str) -> None:
         self.request(
-            "PATCH",
+            "POST",
             f"/repos/{self.repo}/issues/{self.pull_request}/comments",
             data={"body": body},
         )
 
     def update_comment(self, *, comment_id: int, body: str) -> None:
         self.request(
-            "POST",
+            "PATCH",
             f"/repos/{self.repo}/issues/comments/{comment_id}",
             data={"body": body},
         )
