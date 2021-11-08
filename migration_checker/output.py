@@ -65,7 +65,6 @@ bold = functools.partial(_color, color_code="1")
 class GithubCommentOutput:
     def __init__(self, *, client: GithubClient) -> None:
         self.output = io.StringIO()
-        self.first_migration = True
         self.client = client
 
     def post_comment(self) -> None:
@@ -87,7 +86,21 @@ class GithubCommentOutput:
             self.client.create_comment(body=body)
 
     def no_migrations_to_apply(self) -> None:
-        pass
+
+        comment = next(
+            (
+                comment
+                for comment in self.client.get_comments()
+                if "ADDED BY django-migrations-checker" in comment.body
+            ),
+            None,
+        )
+
+        if comment:
+            self.client.update_comment(
+                comment_id=comment.id,
+                body="Looks like this pull request no longer contains any migrations.",
+            )
 
     def begin(self, num_migrations: int) -> None:
         print(get_header_md(), file=self.output)
@@ -99,11 +112,6 @@ class GithubCommentOutput:
         locks: list[tuple[str, str]],
         warnings: list[str],
     ) -> None:
-
-        if not self.first_migration:
-            print("---", file=self.output)
-            self.first_migration = False
-
         print(
             get_migration_md(
                 migration=migration, queries=queries, locks=locks, warnings=warnings
@@ -119,10 +127,8 @@ class GithubCommentOutput:
 
 def get_header_md() -> str:
     return """\
-## Migration details
-
 <p>
-Hi there, I'm Tiendabot 🤖 It looks like your pull request contains database
+Hi there, it looks like your pull request contains database
 migrations. Below you'll find some details about each migrations. Please take
 an extra look at especially the locks taken by the migrations.
 </p>
@@ -157,7 +163,7 @@ def get_migration_md(
 
     source_code = inspect.getsource(migration.__class__)
     if locks:
-        locks_details = "#### Locks\n" + "\n".join(
+        locks_details = "### Locks\n" + "\n".join(
             get_lock_details(table, lock) for table, lock in locks
         )
     else:
@@ -171,7 +177,7 @@ def get_migration_md(
     )
 
     md = f"""
-### {migration.app_label}.{migration.name}
+## {migration.app_label}.{migration.name}
 
 {warnings_text}
 
