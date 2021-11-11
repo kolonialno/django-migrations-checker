@@ -221,7 +221,7 @@ def get_lock_details(table_name: str, lock_type: str) -> str:
         lock_details = (
             "An access exclusive lock will block any other queries to the "
             "table, including reads. This is the strictest level of locking in "
-            "Postgres.\nBacause this lock conflicts with any other lock type, "
+            "Postgres.\nBecause this lock conflicts with any other lock type, "
             "it will have to wait until all other queries against the table have "
             "completed before being granted."
         )
