@@ -10,7 +10,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
-Django = {version = "^3.2.9", optional = true }
+Django = {version = "^3.2.16", optional = true }
 
 [tool.poetry.extras]
 django = ["Django"]
