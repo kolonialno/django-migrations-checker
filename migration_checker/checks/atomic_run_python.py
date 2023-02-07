@@ -3,7 +3,9 @@ from django.db.migrations.operations import RunPython
 from django.db.migrations.state import ProjectState
 
 
-def check_atomic_run_python(*, migration: Migration, state: ProjectState) -> list[str]:
+def check_atomic_run_python(
+    *, migration: Migration, state: ProjectState, sql: str
+) -> list[str]:
     warnings = []
 
     if migration.atomic and any(

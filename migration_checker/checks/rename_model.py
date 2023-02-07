@@ -3,7 +3,9 @@ from django.db.migrations.operations import RenameModel
 from django.db.migrations.state import ProjectState
 
 
-def check_rename_model(*, migration: Migration, state: ProjectState) -> list[str]:
+def check_rename_model(
+    *, migration: Migration, state: ProjectState, sql: str
+) -> list[str]:
     warnings = []
 
     if any(isinstance(operation, RenameModel) for operation in migration.operations):

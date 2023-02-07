@@ -79,11 +79,18 @@ class Executor:
         )
 
         for migration, _ in plan:
+            # Collect the SQL executed by this migration (if possible)
+            sql = "\n".join(
+                executor.loader.collect_sql(  # type: ignore[attr-defined]
+                    [(migration, False)]
+                )
+            )
+
             # Run checkers on the migration
             warnings = [
                 message
                 for check in all_checks
-                for message in check(migration=migration, state=state)
+                for message in check(migration=migration, state=state, sql=sql)
             ]
 
             if self.apply_migrations:

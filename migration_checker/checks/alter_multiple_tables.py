@@ -5,7 +5,7 @@ from django.db.migrations.state import ProjectState
 
 
 def check_alter_multiple_tables(
-    *, migration: Migration, state: ProjectState
+    *, migration: Migration, state: ProjectState, sql: str
 ) -> list[str]:
     warnings = []
 

@@ -4,7 +4,7 @@ from django.db.migrations.state import ProjectState
 
 
 def check_add_non_nullable_field(
-    *, migration: Migration, state: ProjectState
+    *, migration: Migration, state: ProjectState, sql: str
 ) -> list[str]:
     warnings = []
 

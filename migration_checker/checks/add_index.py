@@ -3,7 +3,9 @@ from django.db.migrations.operations import AddIndex
 from django.db.migrations.state import ProjectState
 
 
-def check_add_index(*, migration: Migration, state: ProjectState) -> list[str]:
+def check_add_index(
+    *, migration: Migration, state: ProjectState, sql: str
+) -> list[str]:
     warnings = []
 
     if any(isinstance(operation, AddIndex) for operation in migration.operations):

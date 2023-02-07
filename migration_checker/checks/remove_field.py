@@ -3,7 +3,9 @@ from django.db.migrations.operations import RemoveField
 from django.db.migrations.state import ProjectState
 
 
-def check_remove_field(*, migration: Migration, state: ProjectState) -> list[str]:
+def check_remove_field(
+    *, migration: Migration, state: ProjectState, sql: str
+) -> list[str]:
     warnings = []
 
     if any(isinstance(operation, RemoveField) for operation in migration.operations):
