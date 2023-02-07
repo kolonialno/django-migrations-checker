@@ -20,7 +20,6 @@ class QueryLogger:
         self.queries: list[str] = []
 
     def __call__(self, execute, sql, params, many, context):
-
         cursor = context["cursor"]
         rendered_sql = cursor.mogrify(sql, params).decode()
         self.queries.append(rendered_sql)
@@ -49,7 +48,6 @@ class Executor:
         self.recorder = MigrationRecorder(self.connection)
 
     def run(self) -> None:
-
         # First we need to set up Django
         django.setup()
 
@@ -81,7 +79,6 @@ class Executor:
         )
 
         for migration, _ in plan:
-
             # Run checkers on the migration
             warnings = [
                 message

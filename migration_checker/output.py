@@ -26,7 +26,6 @@ class ConsoleOutput:
         locks: list[tuple[str, str]],
         warnings: list[str],
     ) -> None:
-
         print(cyan(f"\n{migration.app_label}.{migration.name}"))
         for operation in migration.operations:
             print(f"    {operation.describe()}")
@@ -68,7 +67,6 @@ class GithubCommentOutput:
         self.client = client
 
     def post_comment(self) -> None:
-
         comment = next(
             (
                 comment
@@ -86,7 +84,6 @@ class GithubCommentOutput:
             self.client.create_comment(body=body)
 
     def no_migrations_to_apply(self) -> None:
-
         comment = next(
             (
                 comment

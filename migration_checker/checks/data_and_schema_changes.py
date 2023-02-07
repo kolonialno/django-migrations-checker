@@ -6,7 +6,6 @@ from django.db.migrations.state import ProjectState
 def check_data_and_schema_changes(
     *, migration: Migration, state: ProjectState
 ) -> list[str]:
-
     warnings = []
 
     data_migration, schema_migration = False, False

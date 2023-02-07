@@ -4,11 +4,9 @@ from django.db.migrations.state import ProjectState
 
 
 def check_add_index(*, migration: Migration, state: ProjectState) -> list[str]:
-
     warnings = []
 
     if any(isinstance(operation, AddIndex) for operation in migration.operations):
-
         warnings.append(
             "⚠️ Consider using AddIndexConcurrently instead\n"
             "This migration adds an index to a table. That will take a share "
