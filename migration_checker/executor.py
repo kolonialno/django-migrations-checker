@@ -11,7 +11,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.migrations.state import ProjectState
 
-from .checks import Level, Warning, all_checks
+from .checks import Level, Warning, all_checks, run_checks
 from .output import ConsoleOutput, GithubCommentOutput
 
 
@@ -81,11 +81,7 @@ class Executor:
 
         for migration, _ in plan:
             # Run checkers on the migration
-            warnings = [
-                message
-                for check in all_checks
-                for message in check(migration=migration)
-            ]
+            warnings = run_checks(migration)
 
             if self.apply_migrations:
                 queries, locks = self._apply_migration(migration, state)
