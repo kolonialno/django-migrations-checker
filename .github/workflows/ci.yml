@@ -36,6 +36,6 @@ jobs:
       - name: Setup project
         uses: ./.github/actions/setup-project
       - name: Install django
-        run: poetry run pip install "django==${{ django-version }}"
+        run: poetry run pip install "django==${{ matrix.django-version }}"
       - name: Run pytest
         run: poetry run pytest -v
