@@ -19,3 +19,7 @@ flake8:
 .PHONY: pytest
 pytest:
 	pytest
+
+.PHONY: shell
+shell:
+	python -m django shell
