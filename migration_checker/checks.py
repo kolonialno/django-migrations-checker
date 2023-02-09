@@ -1,5 +1,6 @@
 from typing import Iterable, Protocol
 
+from django.db import connection
 from django.db.migrations import (
     AddField,
     AddIndex,
@@ -15,6 +16,7 @@ from django.db.migrations.operations.models import ModelOperation
 
 from .warnings import (
     ADD_INDEX_IN_SEPARATE_MIGRATION,
+    ADDING_FIELD_WITH_CHECK,
     ADDING_NON_NULLABLE_FIELD,
     ALTERING_MULTIPLE_MODELS,
     ATOMIC_DATA_MIGRATION,
@@ -99,6 +101,16 @@ def check_remove_field(*, migration: Migration) -> Iterable[Warning]:
         yield REMOVING_FIELD
 
 
+def check_field_with_check_constraint(*, migration: Migration) -> Iterable[Warning]:
+    if any(
+        connection.data_type_check_constraints.get(operation.field.get_internal_type())
+        is not None
+        for operation in migration.operations
+        if isinstance(operation, AddField)
+    ):
+        yield ADDING_FIELD_WITH_CHECK
+
+
 ALL_CHECKS: list[Check] = [
     check_add_index,
     check_add_non_nullable_field,
@@ -108,6 +120,7 @@ ALL_CHECKS: list[Check] = [
     check_remove_field,
     check_rename_field,
     check_rename_model,
+    check_field_with_check_constraint,
 ]
 
 

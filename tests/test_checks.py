@@ -9,11 +9,12 @@ from django.db.migrations import (
     RunSQL,
 )
 from django.db.migrations.operations.base import Operation
-from django.db.models import Index, IntegerField
+from django.db.models import Index, IntegerField, PositiveIntegerField
 
 from migration_checker.checks import run_checks
 from migration_checker.warnings import (
     ADD_INDEX_IN_SEPARATE_MIGRATION,
+    ADDING_FIELD_WITH_CHECK,
     ADDING_NON_NULLABLE_FIELD,
     ALTERING_MULTIPLE_MODELS,
     REMOVING_FIELD,
@@ -92,6 +93,14 @@ def check_migration(_operations: list[Operation]) -> set[Warning]:
             ],
             {ALTERING_MULTIPLE_MODELS},
         ),
+        (
+            [
+                AddField(
+                    model_name="foo", name="bar", field=PositiveIntegerField(null=True)
+                ),
+            ],
+            {ADDING_FIELD_WITH_CHECK},
+        ),
     ),
     ids=(
         "use-add-index-concurrently",
@@ -103,6 +112,7 @@ def check_migration(_operations: list[Operation]) -> set[Warning]:
         "renaming-field",
         "schema-and-data-changes",
         "altering-multiple-models",
+        "adding-field-with-check",
     ),
 )
 def test_checks(operations: list[Operation], warnings: set[Warning]) -> None:
