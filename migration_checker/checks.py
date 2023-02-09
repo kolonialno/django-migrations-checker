@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Iterable, Protocol
+from typing import Iterable, Protocol
 
 from django.db.migrations import (
     AddField,
@@ -22,9 +22,9 @@ class Level(str, Enum):
     WARNING = "warning", "⚠️"
     NOTICE = "notice", "💡"
 
-    def __new__(cls, *args: Any, **kwds: Any) -> Self:
-        obj = object.__new__(cls)
-        obj._value_ = args[0]
+    def __new__(cls, value: str, _: str) -> Self:
+        obj = str.__new__(cls, value)
+        obj._value_ = value
         return obj
 
     # ignore the first param since it's already set by __new__
