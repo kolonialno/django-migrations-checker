@@ -1,7 +1,9 @@
 from typing import Iterable, Protocol
 
+import django
 from django.db import connection
 from django.db.migrations import (
+    AddConstraint,
     AddField,
     AddIndex,
     Migration,
@@ -16,6 +18,7 @@ from django.db.migrations.operations.models import ModelOperation
 
 from .warnings import (
     ADD_INDEX_IN_SEPARATE_MIGRATION,
+    ADDING_CONSTRAINT,
     ADDING_FIELD_WITH_CHECK,
     ADDING_NON_NULLABLE_FIELD,
     ALTERING_MULTIPLE_MODELS,
@@ -25,6 +28,7 @@ from .warnings import (
     RENAMING_MODEL,
     SCHEMA_AND_DATA_CHANGES,
     USE_ADD_INDEX_CONCURRENTLY,
+    VALIDATE_CONSTRAINT_SEPARATELY,
     Warning,
 )
 
@@ -111,6 +115,29 @@ def check_field_with_check_constraint(*, migration: Migration) -> Iterable[Warni
         yield ADDING_FIELD_WITH_CHECK
 
 
+def check_add_constraint(*, migration: Migration) -> Iterable[Warning]:
+    if any(isinstance(operation, AddConstraint) for operation in migration.operations):
+        yield ADDING_CONSTRAINT
+
+
+def check_validate_constraint(*, migration: Migration) -> Iterable[Warning]:
+    # This feature is only available in Django >= 4.0
+    if django.VERSION < (4, 0):
+        return
+
+    from django.contrib.postgres.operations import ValidateConstraint
+
+    has_validate_constraint = any(
+        isinstance(operation, ValidateConstraint) for operation in migration.operations
+    )
+    has_other_operation = any(
+        not isinstance(operation, ValidateConstraint)
+        for operation in migration.operations
+    )
+    if has_validate_constraint and has_other_operation:
+        yield VALIDATE_CONSTRAINT_SEPARATELY
+
+
 ALL_CHECKS: list[Check] = [
     check_add_index,
     check_add_non_nullable_field,
@@ -121,6 +148,8 @@ ALL_CHECKS: list[Check] = [
     check_rename_field,
     check_rename_model,
     check_field_with_check_constraint,
+    check_add_constraint,
+    check_validate_constraint,
 ]
 
 
