@@ -15,7 +15,6 @@ from django.db.migrations import (
 )
 from django.db.migrations.operations.fields import FieldOperation
 from django.db.migrations.operations.models import ModelOperation
-from django.db.models import CheckConstraint
 
 from .warnings import (
     ADD_INDEX_IN_SEPARATE_MIGRATION,
