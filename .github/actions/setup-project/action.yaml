@@ -1,0 +1,19 @@
+name: 'Setup project'
+description: 'Install dependencies and other project setup'
+runs:
+  using: "composite"
+  steps:
+    - name: Install poetry
+      shell: bash
+      run: pipx install poetry
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'poetry'
+    - name: Create venv
+      shell: bash
+      run: python -m venv .venv
+    - name: Install dependencies
+      shell: bash
+      run: poetry install --remove-untracked

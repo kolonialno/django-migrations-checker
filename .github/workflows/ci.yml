@@ -1,0 +1,35 @@
+name: CI
+
+on: push
+
+env:
+  PYTHON_VERSION: "3.10"
+
+jobs:
+  linters:
+    name: "${{ matrix.linter }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        linter: ["isort", "black", "mypy", "flake8"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup project
+        uses: ./.github/actions/setup-project
+      - name: Add problem matcher
+        run: echo "::add-matcher::.github/${{ matrix.linter }}-problem-matcher.json"
+      - name: Run ${{ matrix.linter }}
+        run: poetry run make ${{ matrix.linter }}
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Setup project
+        uses: ./.github/actions/setup-project
+      - name: Run pytest
+        run: poetry run pytest -v

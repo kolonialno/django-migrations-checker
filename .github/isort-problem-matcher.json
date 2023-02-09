@@ -1,0 +1,14 @@
+{
+    "problemMatcher": [
+        {
+            "owner": "isort",
+            "pattern": [
+                {
+                    "regexp": "^ERROR: (.+) (Imports are not correctly sorted.*)$",
+                    "file": 1,
+                    "message": 2
+                }
+            ]
+        }
+    ]
+}
