@@ -11,9 +11,8 @@ from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.migrations.state import ProjectState
 
-from .checks import all_checks
+from .checks import Level, Warning, all_checks
 from .output import ConsoleOutput, GithubCommentOutput
-from .types import Warning
 
 
 class QueryLogger:
@@ -85,7 +84,7 @@ class Executor:
             warnings = [
                 message
                 for check in all_checks
-                for message in check(migration=migration, state=state)
+                for message in check(migration=migration)
             ]
 
             if self.apply_migrations:
@@ -101,7 +100,7 @@ class Executor:
             if num_exclusive_locks > 1:
                 warnings.append(
                     Warning(
-                        level=Warning.Level.DANGER,
+                        level=Level.DANGER,
                         title="Multiple exclusive locks",
                         description=(
                             "This migration takes multiple exclusive locks."

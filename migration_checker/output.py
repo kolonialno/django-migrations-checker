@@ -9,8 +9,8 @@ import textwrap
 
 from django.db.migrations import Migration
 
+from .checks import Warning
 from .github import GithubClient
-from .types import Warning
 
 
 class ConsoleOutput:
