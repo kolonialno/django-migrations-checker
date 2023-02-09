@@ -34,6 +34,8 @@ profile = "black"
 
 [tool.mypy]
 plugins = ["mypy_django_plugin.main"]
+strict = true
+files = ["migration_checker", "tests"]
 
 [tool.django-stubs]
 django_settings_module = "tests.settings"

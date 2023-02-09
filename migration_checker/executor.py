@@ -2,7 +2,7 @@
 Helper to execute migrations and record results
 """
 
-from typing import Union
+from typing import Any, Callable, Union, cast
 
 import django
 from django.db import connections, transaction
@@ -13,24 +13,26 @@ from django.db.migrations.state import ProjectState
 
 from .checks import all_checks
 from .output import ConsoleOutput, GithubCommentOutput
+from .types import Warning
 
 
 class QueryLogger:
     def __init__(self) -> None:
         self.queries: list[str] = []
 
-    def __call__(self, execute, sql, params, many, context):
+    def __call__(
+        self,
+        execute: Callable[[str, list[Any], bool, dict[str, Any]], Any],
+        sql: str,
+        params: list[Any],
+        many: bool,
+        context: dict[str, Any],
+    ) -> Any:
         cursor = context["cursor"]
         rendered_sql = cursor.mogrify(sql, params).decode()
         self.queries.append(rendered_sql)
 
         return execute(sql, params, many, context)
-
-
-def query_blocker(self, execute, sql, params, many, context):
-    raise RuntimeError(
-        'Queries are not allowed against the {context["database"]} database'
-    )
 
 
 class Executor:
@@ -74,7 +76,7 @@ class Executor:
         for output in self.outputs:
             output.begin(num_migrations=len(plan))
 
-        state = executor._create_project_state(  # type: ignore
+        state = executor._create_project_state(  # type: ignore[attr-defined]
             with_applied_migrations=True,
         )
 
@@ -98,9 +100,15 @@ class Executor:
             )
             if num_exclusive_locks > 1:
                 warnings.append(
-                    "🚨 Multiple exclusive locks\n"
-                    "This migration takes multiple exclusive locks. That can be "
-                    "problematic if the tables are queried frequently.",
+                    Warning(
+                        level=Warning.Level.DANGER,
+                        title="Multiple exclusive locks",
+                        description=(
+                            "This migration takes multiple exclusive locks."
+                            "That can be problematic if the tables are "
+                            "queried frequently."
+                        ),
+                    )
                 )
 
             for output in self.outputs:
@@ -120,10 +128,9 @@ class Executor:
         """
 
         # Apply the migration in the database and record queries and locks
-        # TODO: Block queries against other databases
         query_logger = QueryLogger()
         with transaction.atomic(using=self.database):
-            with self.connection.execute_wrapper(query_logger):  # type: ignore
+            with self.connection.execute_wrapper(query_logger):
                 with self.connection.schema_editor(atomic=False) as schema_editor:
                     migration.apply(state, schema_editor)
 
@@ -155,4 +162,4 @@ class Executor:
                 ORDER BY l.mode, l.relation ASC;
                 """
             )
-            return cursor.fetchall()
+            return cast(list[tuple[str, str]], cursor.fetchall())

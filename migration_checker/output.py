@@ -10,6 +10,7 @@ import textwrap
 from django.db.migrations import Migration
 
 from .github import GithubClient
+from .types import Warning
 
 
 class ConsoleOutput:
@@ -24,18 +25,19 @@ class ConsoleOutput:
         migration: Migration,
         queries: list[str],
         locks: list[tuple[str, str]],
-        warnings: list[str],
+        warnings: list[Warning],
     ) -> None:
         print(cyan(f"\n{migration.app_label}.{migration.name}"))
         for operation in migration.operations:
             print(f"    {operation.describe()}")
 
         for warning in warnings:
-            first_line, *rest = warning.splitlines()
-            print(f"\n    {bold(first_line)}")
+            print(f"\n    {warning.level.emoji} {bold(warning.title)}")
             print(
                 textwrap.fill(
-                    "\n".join(rest), initial_indent="    ", subsequent_indent="    "
+                    warning.description,
+                    initial_indent="    ",
+                    subsequent_indent="    ",
                 )
             )
 
@@ -107,7 +109,7 @@ class GithubCommentOutput:
         migration: Migration,
         queries: list[str],
         locks: list[tuple[str, str]],
-        warnings: list[str],
+        warnings: list[Warning],
     ) -> None:
         print(
             get_migration_md(
@@ -152,7 +154,7 @@ def get_migration_md(
     migration: Migration,
     queries: list[str],
     locks: list[tuple[str, str]],
-    warnings: list[str],
+    warnings: list[Warning],
 ) -> str:
     """
     Get markdown containing details for a single migration.
@@ -169,7 +171,11 @@ def get_migration_md(
     sql = "\n".join(queries) if queries else "-- No queries"
 
     warnings_text = "\n\n".join(
-        textwrap.indent(f"#### {warning}", prefix="> ", predicate=lambda line: True)
+        textwrap.indent(
+            f"#### {warning.level.emoji} {warning.title}\n{warning.description}",
+            prefix="> ",
+            predicate=lambda line: True,
+        )
         for warning in warnings
     )
 
