@@ -130,3 +130,13 @@ REMOVING_FIELD = Warning(
         "field definition on the model."
     ),
 )
+
+ADDING_FIELD_WITH_CHECK = Warning(
+    level=Level.DANGER,
+    title="Adding field with check constraint",
+    description=(
+        "This migration adds a field that also adds a check constraint. When "
+        "this check is added Postgres will check all rows in the table, which "
+        "can take a long time if the table is large"
+    ),
+)
