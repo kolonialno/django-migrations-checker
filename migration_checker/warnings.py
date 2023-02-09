@@ -140,3 +140,25 @@ ADDING_FIELD_WITH_CHECK = Warning(
         "can take a long time if the table is large"
     ),
 )
+
+ADDING_CONSTRAINT = Warning(
+    level=Level.DANGER,
+    title="Adding constraint with validation",
+    description=(
+        "This migration adds a constraint that will also be validated. "
+        "This is problematic because the table will be locked while the "
+        "constraint is validated. On large tables validation can take a long "
+        "time. Consider using AddConstraintNotValid and ValidateConstraint "
+        "instead"
+    ),
+)
+
+VALIDATE_CONSTRAINT_SEPARATELY = Warning(
+    level=Level.DANGER,
+    title="Validate constraints separately",
+    description=(
+        "This migration validates a constraint and does other operations. "
+        "Validating constraints can take a long time, so consider having the "
+        "constraint validation operations in a separate migration."
+    ),
+)
