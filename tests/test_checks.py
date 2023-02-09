@@ -3,7 +3,6 @@ from django.db import migrations
 from django.db.migrations import (
     AddField,
     AddIndex,
-    DeleteModel,
     RemoveField,
     RenameField,
     RenameModel,

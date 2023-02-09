@@ -11,7 +11,9 @@ from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.migrations.state import ProjectState
 
-from .checks import Level, Warning, all_checks, run_checks
+from migration_checker.warnings import MULTIPLE_EXCLUSIVE_LOCKS
+
+from .checks import run_checks
 from .output import ConsoleOutput, GithubCommentOutput
 
 
@@ -94,17 +96,7 @@ class Executor:
                 if lock_type in ("AccessExclusiveLock", "ExclusiveLock")
             )
             if num_exclusive_locks > 1:
-                warnings.append(
-                    Warning(
-                        level=Level.DANGER,
-                        title="Multiple exclusive locks",
-                        description=(
-                            "This migration takes multiple exclusive locks."
-                            "That can be problematic if the tables are "
-                            "queried frequently."
-                        ),
-                    )
-                )
+                warnings.append(MULTIPLE_EXCLUSIVE_LOCKS)
 
             for output in self.outputs:
                 output.migration_result(

@@ -32,6 +32,17 @@ class Warning:
         return f"<Warning: {self}>"
 
 
+MULTIPLE_EXCLUSIVE_LOCKS = Warning(
+    level=Level.DANGER,
+    title="Multiple exclusive locks",
+    description=(
+        "This migration takes multiple exclusive locks."
+        "That can be problematic if the tables are "
+        "queried frequently."
+    ),
+)
+
+
 USE_ADD_INDEX_CONCURRENTLY = Warning(
     title="Consider using AddIndexConcurrently instead",
     description=(

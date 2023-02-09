@@ -29,8 +29,17 @@ psycopg2 = "^2.9.5"
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.black]
+exclude = '''
+/(
+  | migrations
+)/
+
+'''
+
 [tool.isort]
 profile = "black"
+skip = ["migrations"]
 
 [tool.mypy]
 plugins = ["mypy_django_plugin.main"]
