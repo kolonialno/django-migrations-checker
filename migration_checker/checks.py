@@ -1,6 +1,7 @@
 from typing import Iterable, Protocol
 
 import django
+from django.contrib.postgres.operations import AddIndexConcurrently
 from django.db import connection
 from django.db.migrations import (
     AddConstraint,
@@ -39,7 +40,11 @@ class Check(Protocol):
 
 
 def check_add_index(*, migration: Migration) -> Iterable[Warning]:
-    if any(isinstance(operation, AddIndex) for operation in migration.operations):
+    if any(
+        isinstance(operation, AddIndex)
+        and not isinstance(operation, AddIndexConcurrently)
+        for operation in migration.operations
+    ):
         yield USE_ADD_INDEX_CONCURRENTLY
 
         # TODO: Allow if the table was created in the same migration
