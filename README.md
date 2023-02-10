@@ -97,7 +97,63 @@ jobs:
 
 ## Checks
 
-### Add index
+### Adding a non-nullable field
+
+Adding a non-nullable field is not entirely straight forward. This is the case
+even if you set a default value, because Django does not use default values at
+the database level. This means that the previous version running when you roll
+out the field will not provide a value when writing to the table. Because of
+this you should add always add new fields as nullable first. You should also
+make sure any code that writes to the table is updated to also provide a value
+for the new field (either through defaults or by explicity updating code that
+writes to the models). Once that has been rolled out you can make a second
+deploy, which first backfills old rows and then makes the field non-nullable.
+
+#### First deploy
+
+```python
+class Migration(migrations.Migration):
+    ...
+    operations = [
+        migrations.AddField(
+            model_name="order",
+            name="number",
+            field=models.PositiveBigIntegerField(null=True),
+        ),
+    ]
+```
+
+#### Second deploy
+
+First backfill data in one migration:
+
+```python
+class Migration(migrations.Migration):
+    ...
+    operations = [
+        migrations.RunSQL(
+            "update tests_order set number=1 where number is null",
+            migrations.RunSQL.noop,
+        ),
+    ]
+```
+
+Then make the field non-nullable
+
+```python
+class Migration(migrations.Migration):
+    ...
+    operations = [
+        migrations.AlterField(
+            model_name="order",
+            name="number",
+            field=models.PositiveBigIntegerField(),
+        ),
+    ]
+```
+
+
+### Adding indexes
 
 Checks if the migration contains an `AddIndex` operation and suggests using
 `AddIndexConcurrently` instead. This is safer as it doesn't take a lock on the

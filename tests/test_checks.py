@@ -43,90 +43,68 @@ def check_migration(*_operations: Operation) -> set[Warning]:
     return set(run_checks(migration=Migration(name="0001_foo", app_label="foo")))
 
 
-@pytest.mark.parametrize(
-    ("operations", "warnings"),
-    (
-        (
-            [
-                AddIndex(model_name="foo", index=Index(fields=["foo"], name="foo")),
-            ],
-            {USE_ADD_INDEX_CONCURRENTLY},
-        ),
-        (
-            [
-                AddField(model_name="foo", name="bar", field=IntegerField(null=True)),
-                AddIndex(model_name="foo", index=Index(fields=["foo"], name="foo")),
-            ],
-            {USE_ADD_INDEX_CONCURRENTLY, ADD_INDEX_IN_SEPARATE_MIGRATION},
-        ),
-        (
-            [
-                AddField(model_name="foo", name="bar", field=IntegerField(null=True)),
-            ],
-            set(),
-        ),
-        (
-            [
-                AddField(model_name="foo", name="bar", field=IntegerField()),
-            ],
-            {ADDING_NON_NULLABLE_FIELD},
-        ),
-        (
-            [
-                RemoveField(model_name="foo", name="bar"),
-            ],
-            {REMOVING_FIELD},
-        ),
-        (
-            [
-                RenameModel(old_name="foo", new_name="bar"),
-            ],
-            {RENAMING_MODEL},
-        ),
-        (
-            [
-                RenameField(model_name="foo", old_name="bar", new_name="baz"),
-            ],
-            {RENAMING_FIELD},
-        ),
-        (
-            [
-                AddField(model_name="foo", name="bar", field=IntegerField(null=True)),
-                RunSQL("select 1", RunSQL.noop),
-            ],
-            {SCHEMA_AND_DATA_CHANGES},
-        ),
-        (
-            [
-                AddField(model_name="foo", name="bar", field=IntegerField(null=True)),
-                AddField(model_name="baz", name="bar", field=IntegerField(null=True)),
-            ],
-            {ALTERING_MULTIPLE_MODELS},
-        ),
-        (
-            [
-                AddField(
-                    model_name="foo", name="bar", field=PositiveIntegerField(null=True)
-                ),
-            ],
-            {ADDING_FIELD_WITH_CHECK},
-        ),
-    ),
-    ids=(
-        "use-add-index-concurrently",
-        "add-index-separately",
-        "safe-add-nullable-field",
-        "adding-non-nullable-field",
-        "removing-field",
-        "renaming-model",
-        "renaming-field",
-        "schema-and-data-changes",
-        "altering-multiple-models",
-        "adding-field-with-check",
-    ),
-)
-def test_checks(operations: list[Operation], warnings: set[Warning]) -> None:
-    assert check_migration(*operations) == warnings
+def test_add_index() -> None:
+    operation = AddIndex(model_name="foo", index=Index(fields=["foo"], name="foo"))
+    assert check_migration(operation) == {USE_ADD_INDEX_CONCURRENTLY}
+
+
+def test_add_index_separately() -> None:
+    operations = [
+        AddField(model_name="foo", name="bar", field=IntegerField(null=True)),
+        AddIndex(model_name="foo", index=Index(fields=["foo"], name="foo")),
+    ]
+    assert check_migration(*operations) == {
+        USE_ADD_INDEX_CONCURRENTLY,
+        ADD_INDEX_IN_SEPARATE_MIGRATION,
+    }
+
+
+def test_add_nullable_field() -> None:
+    operation = AddField(model_name="foo", name="bar", field=IntegerField(null=True))
+    assert not check_migration(operation)
+
+
+def test_add_non_nullable_field() -> None:
+    operation = AddField(model_name="foo", name="bar", field=IntegerField())
+    assert check_migration(operation) == {ADDING_NON_NULLABLE_FIELD}
+
+
+def test_remove_field() -> None:
+    operation = RemoveField(model_name="foo", name="bar")
+    assert check_migration(operation) == {REMOVING_FIELD}
+
+
+def test_remove_model() -> None:
+    operation = RenameModel(old_name="foo", new_name="bar")
+    assert check_migration(operation) == {RENAMING_MODEL}
+
+
+def test_rename_field() -> None:
+    operation = RenameField(model_name="foo", old_name="bar", new_name="baz")
+    assert check_migration(operation) == {RENAMING_FIELD}
+
+
+def test_schema_and_data_changes() -> None:
+    operations = [
+        AddField(model_name="foo", name="bar", field=IntegerField(null=True)),
+        RunSQL("select 1", RunSQL.noop),
+    ]
+    assert check_migration(*operations) == {SCHEMA_AND_DATA_CHANGES}
+
+
+def test_alter_multiple_models() -> None:
+    operations = [
+        AddField(model_name="foo", name="bar", field=IntegerField(null=True)),
+        AddField(model_name="baz", name="bar", field=IntegerField(null=True)),
+    ]
+    assert check_migration(*operations) == {ALTERING_MULTIPLE_MODELS}
+
+
+def test_add_field_with_check() -> None:
+    operation = AddField(
+        model_name="foo", name="bar", field=PositiveIntegerField(null=True)
+    )
+    assert check_migration(operation) == {ADDING_FIELD_WITH_CHECK}
 
 
 def test_add_constraint() -> None:
