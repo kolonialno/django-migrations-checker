@@ -30,6 +30,15 @@ jobs:
       fail-fast: false
       matrix:
         django-version: ["3.2", "4.0", "4.1"]
+    services:
+      postgres:
+        image: bitnami/postgresql:15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRESQL_DATABASE: test
+          POSTGRESQL_USERNAME: test
+          POSTGRESQL_PASSWORD: test
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -39,3 +48,8 @@ jobs:
         run: poetry run pip install "django==${{ matrix.django-version }}.*"
       - name: Run pytest
         run: poetry run pytest -v
+        env:
+          PGHOST: localhost
+          PGDATABASE: test
+          PGUSER: test
+          PGPASSWORD: test
