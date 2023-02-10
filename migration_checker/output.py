@@ -24,7 +24,7 @@ class ConsoleOutput:
         self,
         migration: Migration,
         queries: list[str],
-        locks: list[tuple[str, str]],
+        locks: list[tuple[str, str]] | None,
         warnings: list[Warning],
     ) -> None:
         print(cyan(f"\n{migration.app_label}.{migration.name}"))
@@ -43,8 +43,10 @@ class ConsoleOutput:
 
         if locks:
             print()
-        for table_name, lock_type in locks:
-            print(f"    🔒 {red(lock_type)} on {bold(table_name)}")
+            for table_name, lock_type in locks:
+                print(f"    🔒 {red(lock_type)} on {bold(table_name)}")
+        else:
+            print(f"    🔒 {yellow('Locks not checked')}")
 
     def done(self) -> None:
         pass
@@ -108,7 +110,7 @@ class GithubCommentOutput:
         self,
         migration: Migration,
         queries: list[str],
-        locks: list[tuple[str, str]],
+        locks: list[tuple[str, str]] | None,
         warnings: list[Warning],
     ) -> None:
         print(
@@ -153,7 +155,7 @@ def get_migration_md(
     *,
     migration: Migration,
     queries: list[str],
-    locks: list[tuple[str, str]],
+    locks: list[tuple[str, str]] | None,
     warnings: list[Warning],
 ) -> str:
     """
@@ -165,6 +167,8 @@ def get_migration_md(
         locks_details = "### Locks\n" + "\n".join(
             get_lock_details(table, lock) for table, lock in locks
         )
+    elif locks is None:
+        locks_details = "❓ Not checked"
     else:
         locks_details = "This migration does not take any locks"
 

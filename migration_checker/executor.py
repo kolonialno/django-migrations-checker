@@ -5,6 +5,7 @@ Helper to execute migrations and record results
 from typing import Any, Callable, Union, cast
 
 import django
+from django.contrib.postgres.operations import NotInTransactionMixin
 from django.db import connections, transaction
 from django.db.migrations import Migration
 from django.db.migrations.executor import MigrationExecutor
@@ -88,11 +89,11 @@ class Executor:
             if self.apply_migrations:
                 queries, locks = self._apply_migration(migration, state)
             else:
-                queries, locks = [], []
+                queries, locks = [], None
 
             num_exclusive_locks = sum(
                 1
-                for _, lock_type in locks
+                for _, lock_type in locks or ()
                 if lock_type in ("AccessExclusiveLock", "ExclusiveLock")
             )
             if num_exclusive_locks > 1:
@@ -108,11 +109,21 @@ class Executor:
 
     def _apply_migration(
         self, migration: Migration, state: ProjectState
-    ) -> tuple[list[str], list[tuple[str, str]]]:
+    ) -> tuple[list[str], list[tuple[str, str]] | None]:
         """
         Apply a single migration, while recording queries and checking locks
         held in the database afterwards.
         """
+
+        # Some operations, like AddIndexConcurrently, cannot be run in a
+        # transaction, so for those special cases we skip recording locks
+        # because we ahave no way of doing that.
+        must_be_non_atomic = any(
+            isinstance(operation, NotInTransactionMixin)
+            for operation in migration.operations
+        )
+        if must_be_non_atomic:
+            return self._apply_non_atomic_migration(migration, state), None
 
         # Apply the migration in the database and record queries and locks
         query_logger = QueryLogger()
@@ -125,6 +136,25 @@ class Executor:
             self.recorder.record_applied(migration.app_label, migration.name)
 
         return query_logger.queries, locks
+
+    def _apply_non_atomic_migration(
+        self, migration: Migration, state: ProjectState
+    ) -> list[str]:
+        """
+        Apply a migration outside of a migration. This is needed for some
+        operations that cannot be executed inside a transaction, like
+        AddIndexConcurrently.
+        """
+
+        # Apply the migration in the database and record queries and locks
+        query_logger = QueryLogger()
+        with self.connection.execute_wrapper(query_logger):
+            with self.connection.schema_editor(atomic=False) as schema_editor:
+                migration.apply(state, schema_editor)
+
+            self.recorder.record_applied(migration.app_label, migration.name)
+
+        return query_logger.queries
 
     def get_locks(self) -> list[tuple[str, str]]:
         """
