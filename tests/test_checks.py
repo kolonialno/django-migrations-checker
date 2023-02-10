@@ -11,7 +11,9 @@ from django.db.migrations import (
     RunSQL,
 )
 from django.db.migrations.operations.base import Operation
+from django.db.migrations.state import ProjectState
 from django.db.models import (
+    AutoField,
     CheckConstraint,
     Index,
     IntegerField,
@@ -36,11 +38,25 @@ from migration_checker.warnings import (
 )
 
 
-def check_migration(*_operations: Operation) -> set[Warning]:
-    class Migration(migrations.Migration):
-        operations = list(_operations)
+def check_migration(*test_operations: Operation) -> set[Warning]:
+    class InitialMigration(migrations.Migration):
+        initial = True
+        operations = [
+            migrations.CreateModel(
+                name="Foo",
+                fields=[("id", AutoField())],
+            ),
+        ]
 
-    return set(run_checks(migration=Migration(name="0001_foo", app_label="foo")))
+    class TestMigration(migrations.Migration):
+        operations = list(test_operations)
+
+    state = ProjectState()
+    state = InitialMigration(name="0001_foo", app_label="foo").mutate_state(state)
+
+    migration = TestMigration(name="0002_foo", app_label="foo")
+
+    return set(run_checks(migration, state))
 
 
 def test_add_index() -> None:

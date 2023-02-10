@@ -16,6 +16,7 @@ from django.db.migrations import (
 )
 from django.db.migrations.operations.fields import FieldOperation
 from django.db.migrations.operations.models import ModelOperation
+from django.db.migrations.state import ProjectState
 
 from .warnings import (
     ADD_INDEX_IN_SEPARATE_MIGRATION,
@@ -35,11 +36,13 @@ from .warnings import (
 
 
 class Check(Protocol):
-    def __call__(self, *, migration: Migration) -> Iterable[Warning]:
+    def __call__(
+        self, *, migration: Migration, state: ProjectState
+    ) -> Iterable[Warning]:
         ...
 
 
-def check_add_index(*, migration: Migration) -> Iterable[Warning]:
+def check_add_index(*, migration: Migration, state: ProjectState) -> Iterable[Warning]:
     if any(
         isinstance(operation, AddIndex)
         and not isinstance(operation, AddIndexConcurrently)
@@ -52,7 +55,9 @@ def check_add_index(*, migration: Migration) -> Iterable[Warning]:
             yield ADD_INDEX_IN_SEPARATE_MIGRATION
 
 
-def check_add_non_nullable_field(*, migration: Migration) -> Iterable[Warning]:
+def check_add_non_nullable_field(
+    *, migration: Migration, state: ProjectState
+) -> Iterable[Warning]:
     if any(
         isinstance(operation, AddField) and not operation.field.null
         for operation in migration.operations
@@ -61,7 +66,9 @@ def check_add_non_nullable_field(*, migration: Migration) -> Iterable[Warning]:
         yield ADDING_NON_NULLABLE_FIELD
 
 
-def check_alter_multiple_tables(*, migration: Migration) -> Iterable[Warning]:
+def check_alter_multiple_tables(
+    *, migration: Migration, state: ProjectState
+) -> Iterable[Warning]:
     altered_models = set()
 
     if migration.atomic and not migration.initial:
@@ -76,14 +83,18 @@ def check_alter_multiple_tables(*, migration: Migration) -> Iterable[Warning]:
         yield ALTERING_MULTIPLE_MODELS
 
 
-def check_atomic_run_python(*, migration: Migration) -> Iterable[Warning]:
+def check_atomic_run_python(
+    *, migration: Migration, state: ProjectState
+) -> Iterable[Warning]:
     if migration.atomic and any(
         isinstance(operation, RunPython) for operation in migration.operations
     ):
         yield ATOMIC_DATA_MIGRATION
 
 
-def check_data_and_schema_changes(*, migration: Migration) -> Iterable[Warning]:
+def check_data_and_schema_changes(
+    *, migration: Migration, state: ProjectState
+) -> Iterable[Warning]:
     data_migration, schema_migration = False, False
     for operation in migration.operations:
         if isinstance(operation, (RunPython, RunSQL)):
@@ -95,22 +106,30 @@ def check_data_and_schema_changes(*, migration: Migration) -> Iterable[Warning]:
         yield SCHEMA_AND_DATA_CHANGES
 
 
-def check_rename_model(*, migration: Migration) -> Iterable[Warning]:
+def check_rename_model(
+    *, migration: Migration, state: ProjectState
+) -> Iterable[Warning]:
     if any(isinstance(operation, RenameModel) for operation in migration.operations):
         yield RENAMING_MODEL
 
 
-def check_rename_field(*, migration: Migration) -> Iterable[Warning]:
+def check_rename_field(
+    *, migration: Migration, state: ProjectState
+) -> Iterable[Warning]:
     if any(isinstance(operation, RenameField) for operation in migration.operations):
         yield RENAMING_FIELD
 
 
-def check_remove_field(*, migration: Migration) -> Iterable[Warning]:
+def check_remove_field(
+    *, migration: Migration, state: ProjectState
+) -> Iterable[Warning]:
     if any(isinstance(operation, RemoveField) for operation in migration.operations):
         yield REMOVING_FIELD
 
 
-def check_field_with_check_constraint(*, migration: Migration) -> Iterable[Warning]:
+def check_field_with_check_constraint(
+    *, migration: Migration, state: ProjectState
+) -> Iterable[Warning]:
     if any(
         connection.data_type_check_constraints.get(operation.field.get_internal_type())
         is not None
@@ -120,12 +139,16 @@ def check_field_with_check_constraint(*, migration: Migration) -> Iterable[Warni
         yield ADDING_FIELD_WITH_CHECK
 
 
-def check_add_constraint(*, migration: Migration) -> Iterable[Warning]:
+def check_add_constraint(
+    *, migration: Migration, state: ProjectState
+) -> Iterable[Warning]:
     if any(isinstance(operation, AddConstraint) for operation in migration.operations):
         yield ADDING_CONSTRAINT
 
 
-def check_validate_constraint(*, migration: Migration) -> Iterable[Warning]:
+def check_validate_constraint(
+    *, migration: Migration, state: ProjectState
+) -> Iterable[Warning]:
     # This feature is only available in Django >= 4.0
     if django.VERSION < (4, 0):
         return
@@ -158,5 +181,9 @@ ALL_CHECKS: list[Check] = [
 ]
 
 
-def run_checks(migration: Migration) -> list[Warning]:
-    return [warning for check in ALL_CHECKS for warning in check(migration=migration)]
+def run_checks(migration: Migration, state: ProjectState) -> list[Warning]:
+    return [
+        warning
+        for check in ALL_CHECKS
+        for warning in check(migration=migration, state=state)
+    ]

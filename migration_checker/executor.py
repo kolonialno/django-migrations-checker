@@ -84,7 +84,7 @@ class Executor:
 
         for migration, _ in plan:
             # Run checkers on the migration
-            warnings = run_checks(migration)
+            warnings = run_checks(migration, state)
 
             if self.apply_migrations:
                 queries, locks = self._apply_migration(migration, state)
