@@ -5,6 +5,7 @@ from django.db.migrations import (
     AddConstraint,
     AddField,
     AddIndex,
+    AlterField,
     RemoveField,
     RenameField,
     RenameModel,
@@ -14,6 +15,7 @@ from django.db.migrations.operations.base import Operation
 from django.db.migrations.state import ProjectState
 from django.db.models import (
     AutoField,
+    BigAutoField,
     CheckConstraint,
     Index,
     IntegerField,
@@ -27,6 +29,7 @@ from migration_checker.warnings import (
     ADDING_CONSTRAINT,
     ADDING_FIELD_WITH_CHECK,
     ADDING_NON_NULLABLE_FIELD,
+    ALTER_FIELD,
     ALTERING_MULTIPLE_MODELS,
     REMOVING_FIELD,
     RENAMING_FIELD,
@@ -129,6 +132,16 @@ def test_add_constraint() -> None:
         constraint=CheckConstraint(check=Q(age__gte=18), name="age_gte_18"),
     )
     assert check_migration(operation) == {ADDING_CONSTRAINT}
+
+
+def test_alter_field() -> None:
+    operation = AlterField(model_name="foo", name="id", field=BigAutoField())
+    assert check_migration(operation) == {ALTER_FIELD}
+
+
+def test_alter_field_to_nullable() -> None:
+    operation = AlterField(model_name="foo", name="id", field=AutoField(null=True))
+    assert check_migration(operation) == set()
 
 
 @pytest.mark.skipif(django.VERSION < (4, 0), reason="Not supported in Django < 4.0")

@@ -7,6 +7,7 @@ from django.db.migrations import (
     AddConstraint,
     AddField,
     AddIndex,
+    AlterField,
     Migration,
     RemoveField,
     RenameField,
@@ -16,13 +17,14 @@ from django.db.migrations import (
 )
 from django.db.migrations.operations.fields import FieldOperation
 from django.db.migrations.operations.models import ModelOperation
-from django.db.migrations.state import ProjectState
+from django.db.migrations.state import ModelState, ProjectState
 
 from .warnings import (
     ADD_INDEX_IN_SEPARATE_MIGRATION,
     ADDING_CONSTRAINT,
     ADDING_FIELD_WITH_CHECK,
     ADDING_NON_NULLABLE_FIELD,
+    ALTER_FIELD,
     ALTERING_MULTIPLE_MODELS,
     ATOMIC_DATA_MIGRATION,
     REMOVING_FIELD,
@@ -166,6 +168,25 @@ def check_validate_constraint(
         yield VALIDATE_CONSTRAINT_SEPARATELY
 
 
+def check_alter_field(
+    *, migration: Migration, state: ProjectState
+) -> Iterable[Warning]:
+    def changes_type(operation: AlterField) -> bool:
+        # Extract the old field
+        model: ModelState = state.models[(migration.app_label, operation.model_name)]
+        field = model.fields[operation.name]
+        # TODO: Also check other things that have changed
+        return type(field) is not type(operation.field)  # noqa: E721
+
+    alter_fields = [
+        operation
+        for operation in migration.operations
+        if isinstance(operation, AlterField)
+    ]
+    if any(changes_type(operation) for operation in alter_fields):
+        yield ALTER_FIELD
+
+
 ALL_CHECKS: list[Check] = [
     check_add_index,
     check_add_non_nullable_field,
@@ -178,6 +199,7 @@ ALL_CHECKS: list[Check] = [
     check_field_with_check_constraint,
     check_add_constraint,
     check_validate_constraint,
+    check_alter_field,
 ]
 
 
