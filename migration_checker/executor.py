@@ -2,13 +2,15 @@
 Helper to execute migrations and record results
 """
 
-from typing import Any, Callable, Union, cast
+from typing import Any, Callable, Sequence, Union, cast
 
 import django
+import sqlparse  # type: ignore[import]
 from django.contrib.postgres.operations import NotInTransactionMixin
 from django.db import connections, transaction
-from django.db.migrations import Migration
+from django.db.migrations import Migration, RunSQL, SeparateDatabaseAndState
 from django.db.migrations.executor import MigrationExecutor
+from django.db.migrations.operations.base import Operation
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.migrations.state import ProjectState
 
@@ -43,7 +45,7 @@ class Executor:
         *,
         database: str,
         apply_migrations: bool,
-        outputs: list[Union[ConsoleOutput, GithubCommentOutput]]
+        outputs: list[Union[ConsoleOutput, GithubCommentOutput]],
     ) -> None:
         self.database = database
         self.apply_migrations = apply_migrations
@@ -118,11 +120,7 @@ class Executor:
         # Some operations, like AddIndexConcurrently, cannot be run in a
         # transaction, so for those special cases we skip recording locks
         # because we ahave no way of doing that.
-        must_be_non_atomic = any(
-            isinstance(operation, NotInTransactionMixin)
-            for operation in migration.operations
-        )
-        if must_be_non_atomic:
+        if self._must_be_non_atomic(migration.operations):
             return self._apply_non_atomic_migration(migration, state), None
 
         # Apply the migration in the database and record queries and locks
@@ -136,6 +134,58 @@ class Executor:
             self.recorder.record_applied(migration.app_label, migration.name)
 
         return query_logger.queries, locks
+
+    def _must_be_non_atomic_query(self, query: str) -> bool:
+        """
+        Try to detect if a raw query must be non-atomic.
+        """
+
+        patterns = [
+            [
+                (sqlparse.tokens.DDL, "CREATE"),
+                (sqlparse.tokens.Keyword, "INDEX"),
+                (sqlparse.tokens.Keyword, "CONCURRENTLY"),
+            ],
+            [
+                (sqlparse.tokens.DDL, "DROP"),
+                (sqlparse.tokens.Keyword, "INDEX"),
+                (sqlparse.tokens.Keyword, "CONCURRENTLY"),
+            ],
+        ]
+
+        for statement in sqlparse.parse(query):
+            for pattern in patterns:
+                if all(
+                    any(token.match(ttype, value) for token in statement.tokens)
+                    for ttype, value in pattern
+                ):
+                    return True
+        return False
+
+    def _must_be_non_atomic(self, operations: Sequence[Operation]) -> bool:
+        """
+        Check if any of the operations must be run outside of a transaction.
+        This is the case for some operations, like AddIndexConcurrently. This
+        will recursivey check SeparateDatabaseAndState migrations.
+        """
+
+        for operation in operations:
+            if isinstance(operation, NotInTransactionMixin):
+                return True
+            if isinstance(operation, SeparateDatabaseAndState):
+                return self._must_be_non_atomic(operation.database_operations)
+            if isinstance(operation, RunSQL):
+                if isinstance(operation.sql, str):
+                    return self._must_be_non_atomic_query(operation.sql)
+                else:
+                    return any(
+                        self._must_be_non_atomic_query(statement)
+                        if isinstance(statement, str)
+                        else self._must_be_non_atomic_query(statement[0])
+                        for statement in operation.sql
+                    )
+
+        return False
 
     def _apply_non_atomic_migration(
         self, migration: Migration, state: ProjectState
