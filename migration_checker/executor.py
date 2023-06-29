@@ -5,7 +5,7 @@ Helper to execute migrations and record results
 from typing import Any, Callable, Sequence, Union, cast
 
 import django
-import sqlparse
+import sqlparse  # type: ignore[import]
 from django.contrib.postgres.operations import NotInTransactionMixin
 from django.db import connections, transaction
 from django.db.migrations import Migration, RunSQL, SeparateDatabaseAndState
