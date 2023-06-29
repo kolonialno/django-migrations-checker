@@ -162,3 +162,13 @@ VALIDATE_CONSTRAINT_SEPARATELY = Warning(
         "constraint validation operations in a separate migration."
     ),
 )
+
+ALTER_FIELD = Warning(
+    level=Level.DANGER,
+    title="Changing column type",
+    description=(
+        "This migration is changing the type of a column, which is generally "
+        "not safe because it fully locks the table and can cause issues with "
+        "writes from old code."
+    ),
+)

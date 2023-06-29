@@ -153,6 +153,17 @@ class Migration(migrations.Migration):
 ```
 
 
+### Changing field type
+
+Changing the type of a field is generally not safe to do because it causes a
+full table rewrite, during which the table will be fully locked. Additionally
+old code still running after the migration has been applied might write
+unsupported values to the column.
+
+Rather than changing the type of a column you should add a new column and
+manually migrate data from the old column to the new one.
+
+
 ### Adding indexes
 
 Checks if the migration contains an `AddIndex` operation and suggests using
