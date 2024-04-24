@@ -33,7 +33,12 @@ class QueryLogger:
         context: dict[str, Any],
     ) -> Any:
         cursor = context["cursor"]
-        rendered_sql = cursor.mogrify(sql, params).decode()
+        mogrify_result = cursor.mogrify(sql, params)
+        rendered_sql: str = (
+            mogrify_result
+            if isinstance(mogrify_result, str)
+            else mogrify_result.decode()
+        )
         self.queries.append(rendered_sql)
 
         return execute(sql, params, many, context)
