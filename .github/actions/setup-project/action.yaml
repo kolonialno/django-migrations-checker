@@ -1,5 +1,5 @@
-name: 'Setup project'
-description: 'Install dependencies and other project setup'
+name: "Setup project"
+description: "Install dependencies and other project setup"
 runs:
   using: "composite"
   steps:
@@ -10,10 +10,10 @@ runs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'poetry'
+        cache: "poetry"
     - name: Create venv
       shell: bash
       run: python -m venv .venv
     - name: Install dependencies
       shell: bash
-      run: poetry install --remove-untracked
+      run: poetry install
