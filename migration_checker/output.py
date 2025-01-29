@@ -232,6 +232,40 @@ def get_lock_details(table_name: str, lock_type: str) -> str:
             "it will have to wait until all other queries against the table have "
             "completed before being granted."
         )
+    elif lock_type == "AccessShareLock":
+        lock_details = (
+            "This lock allows concurrent reads from the table but blocks operations "
+            "that attempt to modify the table's structure (e.g., `ALTER TABLE`, `DROP "
+            "TABLE`). It is the lightest lock type and is automatically acquired by "
+            "`SELECT` queries. While it rarely blocks other queries, it must wait if "
+            "an AccessExclusiveLock is already held (e.g., during a schema change)."
+        )
+    elif lock_type == "RowShareLock":
+        lock_details = (
+            "This lock is acquired when rows are explicitly locked for updates (e.g., "
+            "`SELECT ... FOR UPDATE`). It allows other concurrent reads and even "
+            "other row-level locks but blocks operations that try to acquire "
+            "exclusive locks on the entire table (e.g., `TRUNCATE`). It ensures rows "
+            "are not modified by conflicting transactions until the lock is released."
+        )
+    elif lock_type == "ShareRowExclusiveLock":
+        lock_details = (
+            "A stricter variant of ShareLock, this lock blocks both concurrent schema "
+            "changes (e.g., `ALTER TABLE`) and conflicting row-level locks. It is "
+            "used by commands like `CREATE INDEX` (non-concurrent) and allows reads "
+            "but prevents other transactions from acquiring ShareLock, "
+            "ShareRowExclusiveLock, or exclusive locks. It balances allowing reads "
+            "while guarding against structural or conflicting data changes."
+        )
+    elif lock_type == "ExclusiveLock":
+        lock_details = (
+            "This lock blocks both writes and other exclusive locks but allows "
+            "concurrent reads. It is stronger than RowShareLock or ShareLock but "
+            "weaker than AccessExclusiveLock. It’s used for operations like `REFRESH "
+            "MATERIALIZED VIEW` (without `CONCURRENTLY`) or certain `VACUUM` commands. "
+            "While reads can continue, any attempt to write to the table or acquire "
+            "conflicting locks will be blocked until it’s released."
+        )
     else:
         lock_details = "Unknown lock type, please check the Postgres documentation"
 
@@ -240,10 +274,14 @@ def get_lock_details(table_name: str, lock_type: str) -> str:
         emoji = "⚠️"
     elif lock_type in ("ExclusiveLock", "AccessExclusiveLock"):
         emoji = "🚨"
+    elif lock_type in ("RowShareLock"):
+        emoji = "🔒"
+    elif lock_type in ("AccessShareLock"):
+        emoji = "🔍"
 
     return f"""\
 <details>
-<summary>{emoji }<code>{lock_type}</code> on <code>{table_name}</code></summary>
+<summary>{emoji}<code>{lock_type}</code> on <code>{table_name}</code></summary>
 <blockquote>{lock_details}</blockquote>
 </details>
 """
